@@ -1,0 +1,4 @@
+.venv
+.idea
+config.env
+naurok_cache.json
