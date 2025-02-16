@@ -10,6 +10,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 import requests
 from collections import deque
 import threading
@@ -30,7 +32,6 @@ cleaning = False
 last_task_time = time.time()
 cleaning_event = threading.Event()
 
-
 try:
     with open(CACHE_FILE, "r", encoding="utf-8") as f:
         cache = json.load(f)
@@ -46,28 +47,31 @@ options.add_experimental_option("excludeSwitches", ["enable-automation"])
 options.add_experimental_option('useAutomationExtension', False)
 options.add_argument("--ignore-certificate-errors")
 options.add_argument("--disable-dev-shm-usage")
+options.add_argument("--user-data-dir=/tmp/zxc")
+options.add_argument("--disable-blink-features=AutomationControlled")
+options.add_argument("--no-sandbox")
 options.add_argument("--headless")
 options.add_argument("--window-size=1920,1080")
 options.add_argument("--disable-gpu")
 
 browser = webdriver.Chrome(options=options)
+service = Service(ChromeDriverManager().install())
 wait = WebDriverWait(browser, 3)
 
-auth_link = "https://naurok.com.ua/login"
-browser.get(auth_link)
-email_field = browser.find_element(By.ID, "loginform-login")
-password_field = browser.find_element(By.ID, "loginform-password")
-email_field.send_keys(EMAIL)
-password_field.send_keys(PASSWORD)
-logged_in = False
-while not logged_in:
-    try:
-        button2 = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(text(),'Увійти')]")))
-        button2.click()
-        time.sleep(random.uniform(2, 4))
-    except:
-        print("Logging was successful")
-        logged_in = True
+browser.get("https://naurok.com.ua/")
+time.sleep(3)
+
+with open("cookies.json", "r", encoding="utf-8") as file:
+    cookies = json.load(file)
+
+for cookie in cookies:
+    if "sameSite" in cookie and cookie["sameSite"] not in ["Strict", "Lax", "None"]:
+        del cookie["sameSite"]
+    browser.add_cookie(cookie)
+
+browser.refresh()
+time.sleep(3)
+print("✅ Successful logging!")
 
 
 def save_cache():
